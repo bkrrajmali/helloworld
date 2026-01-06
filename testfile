@@ -1,4 +1,7 @@
 i am in dev branch
 i chnaged this locally
 
-second change from local
+<<<<<<< HEAD
+=======
+this was changed in github
+>>>>>>> 79db1b67679e2f76715352c21170ae481db184c8
