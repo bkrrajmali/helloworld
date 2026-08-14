@@ -4,7 +4,7 @@ name: Maven Build and Docker Deploy
 on:
   push:
     branches:
-      - xxxx   # <-- replace with your actual trigger branch(es)
+      - main   # <-- replace with your actual trigger branch(es)
 
 jobs:
   maven-build:
