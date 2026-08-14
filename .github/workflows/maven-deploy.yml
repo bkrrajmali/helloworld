@@ -1,6 +1,4 @@
 name: Maven Build and Docker Deploy
-
-# Equivalent to Azure DevOps "trigger: - xxxx"
 on:
   push:
     branches:
@@ -60,7 +58,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: '**/Dockerfile'
+          file: ./Dockerfile   # <-- update this to the exact path if your Dockerfile isn't at the repo root
           push: true
           tags: ${{ secrets.DOCKER_REGISTRY }}/helloworld:latest
 
