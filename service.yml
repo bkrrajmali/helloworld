@@ -1,13 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name:  helloworld-rtp-service
+  name: helloworld-rtp-service
   namespace: helloworld
+
 spec:
-  type: NodePort
+  type: LoadBalancer
+
   selector:
     app: helloworld
+
   ports:
-  - nodePort: 30082
-    port: 8000
-    targetPort: 8000
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
