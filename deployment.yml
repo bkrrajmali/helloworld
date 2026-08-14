@@ -1,12 +1,13 @@
-apiVersion: apps/v1 
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bala-regapp
-  labels: 
-     app: regapp
+  labels:
+    app: regapp
 
 spec:
-  replicas: 5 
+  replicas: 5
+
   selector:
     matchLabels:
       app: regapp
@@ -15,13 +16,19 @@ spec:
     metadata:
       labels:
         app: regapp
+
     spec:
+      imagePullSecrets:
+        - name: acr-auth
+
       containers:
-      - name: regapp
-        image: springbootdockerreg.azurecr.io/helloworld:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
+        - name: regapp
+          image: springbootdockerreg.azurecr.io/helloworld:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8080
+
   strategy:
     type: RollingUpdate
     rollingUpdate:
