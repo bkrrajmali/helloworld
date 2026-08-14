@@ -72,6 +72,18 @@ jobs:
         # that authenticates using a Kubernetes ServiceAccount token
         # (see notes below on generating this).
 
+      - name: Sanity check kubeconfig (no secret content is printed)
+        run: |
+          if [ ! -s "$HOME/.kube/config" ]; then
+            echo "::error::kubeconfig file is empty after decoding — check the KUBE_CONFIG secret"
+            exit 1
+          fi
+          if ! grep -q "apiVersion" "$HOME/.kube/config"; then
+            echo "::error::decoded file does not look like a valid kubeconfig"
+            exit 1
+          fi
+          echo "kubeconfig decoded successfully, $(wc -l < "$HOME/.kube/config") lines"
+
       - name: Verify cluster access
         run: kubectl cluster-info
 
