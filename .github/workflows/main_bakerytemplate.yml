@@ -1,65 +1,81 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+name: Maven Build and Docker Deploy
 
-name:  Maven Build and Docker Deploy
+# Equivalent to Azure DevOps "trigger: - xxxx"
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - xxxx   # <-- replace with your actual trigger branch(es)
 
 jobs:
-  build:
-    runs-on: windows-latest
-    permissions:
-      contents: read #This is required for actions/checkout
+  maven-build:
+    name: Maven Build
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # 1. Checkout (equivalent to "checkout: self")
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Java version
+      # 2. Java setup (Azure Maven@4 task auto-installs JDK; GitHub Actions needs this explicit)
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'microsoft'
+          distribution: 'temurin'
+          java-version: '21'   # matches the JDK used across your other workflow and pom.xml compiler target
+          cache: 'maven'
 
-      - name: Build with Maven
-        run: mvn clean install
+      # 3. Maven Package (equivalent to Maven@4 task)
+      - name: Maven Package
+        run: mvn -f pom.xml clean package
 
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
+      # Publish JUnit test results (equivalent to publishJUnitResults: true)
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
         with:
-           name: java-app
-           path: webapp/target/*.war
+          name: Maven Test Results
+          path: '**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
 
-  deploy:
-    runs-on: windows-latest
-    needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      # 4. Bash inline script (equivalent to Bash@3 task)
+      - name: List built artifact
+        run: |
+          ls -l webapp/target/webapp.war
 
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
+      # 5. Docker login using service account / registry credentials stored as GitHub secrets
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
         with:
-          name: java-app
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_064D15B2DFAF4ED194EC5DA987B68D60 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1FEF9E05F4B749B6ABB446F9465FB19A }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_D486F5BF570A48758E163A97FA7EF232 }}
+          registry: ${{ secrets.DOCKER_REGISTRY }}       # e.g. docker.io, ghcr.io, myregistry.azurecr.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+      # 6. Docker Buildx setup (recommended for build & push)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 7. Docker Build and Push (equivalent to Docker@2 buildAndPush)
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
         with:
-          app-name: 'bakerytemplate'
-          slot-name: 'Production'
-          package: '*.war'
-          
+          context: .
+          file: '**/Dockerfile'
+          push: true
+          tags: ${{ secrets.DOCKER_REGISTRY }}/helloworld:latest
+
+      # 8. Kubernetes deploy using a service account token / kubeconfig stored as a secret
+      #    (equivalent to KubernetesManifest@1 with kubernetesServiceConnection)
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+        # KUBE_CONFIG secret should contain a base64-encoded kubeconfig file
+        # that authenticates using a Kubernetes ServiceAccount token
+        # (see notes below on generating this).
+
+      - name: Verify cluster access
+        run: kubectl cluster-info
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f deployment.yml -n default
