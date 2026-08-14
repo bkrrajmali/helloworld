@@ -62,27 +62,24 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_REGISTRY }}/helloworld:latest
 
-      # 8. Kubernetes deploy using a service account token / kubeconfig stored as a secret
+      # 8. Kubernetes deploy via Azure CLI login (Service Principal) + AKS credentials
       #    (equivalent to KubernetesManifest@1 with kubernetesServiceConnection)
-      - name: Set up kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
-        # KUBE_CONFIG secret should contain a base64-encoded kubeconfig file
-        # that authenticates using a Kubernetes ServiceAccount token
-        # (see notes below on generating this).
+      - name: Azure Login (Service Principal)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          # AZURE_CREDENTIALS secret must be the JSON output of:
+          #   az ad sp create-for-rbac --name "<sp-name>" --role Contributor \
+          #     --scopes /subscriptions/<sub-id>/resourceGroups/kubernetes-mgmt-srv \
+          #     --sdk-auth
+          # Paste the full JSON object as the secret value.
 
-      - name: Sanity check kubeconfig (no secret content is printed)
+      - name: Get AKS credentials
         run: |
-          if [ ! -s "$HOME/.kube/config" ]; then
-            echo "::error::kubeconfig file is empty after decoding — check the KUBE_CONFIG secret"
-            exit 1
-          fi
-          if ! grep -q "apiVersion" "$HOME/.kube/config"; then
-            echo "::error::decoded file does not look like a valid kubeconfig"
-            exit 1
-          fi
-          echo "kubeconfig decoded successfully, $(wc -l < "$HOME/.kube/config") lines"
+          az aks get-credentials \
+            --resource-group kubernetes-mgmt-srv \
+            --name azure-aks-hpa \
+            --overwrite-existing
 
       - name: Verify cluster access
         run: kubectl cluster-info
