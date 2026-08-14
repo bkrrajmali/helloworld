@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: regapp
-        image: balaazurecontainerreg.azurecr.io/balaazurecontainerreg:117
+        image: springbootdockerreg.azurecr.io/helloworld:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
