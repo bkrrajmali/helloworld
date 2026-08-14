@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bala-regapp
+  namespace: helloworld
   labels:
     app: regapp
 
@@ -40,17 +41,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: helloworld-rtp-service
+  name: bala-regapp-service
   namespace: helloworld
 
 spec:
   type: LoadBalancer
 
   selector:
-    app: helloworld
+    app: regapp
 
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 8000
-
+      port: 8080
+      targetPort: 8080
