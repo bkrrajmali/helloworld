@@ -1,3 +1,7 @@
-FROM openjdk:8
-ADD  webapp/target/webapp.war webapp.war
-ENTRYPOINT ["java", "-jar", "webapp.war"]
+FROM tomcat:9-jdk8
+
+COPY webapp/target/webapp.war  /usr/local/tomcat/webapps/ROOT.war
+
+EXPOSE 8080
+
+CMD ["catalina.sh", "run"]
